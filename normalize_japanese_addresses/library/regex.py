@@ -97,7 +97,7 @@ def getTownRegexes(pref: str, city: str, endpoint):
         else:
             num = match_value
             for match in re.finditer('([一二三四五六七八九十]+)', match_value):
-                replace_num = str(kanjize.kanji2int(match.group()))
+                replace_num = str(int(kanjize.kanji2number(match.group())))
                 num = num.replace(match.group(), replace_num)
 
             num = re.sub('(丁目?|番([町丁])|条|軒|線|([のノ])町|地割)', '', num)

@@ -1,6 +1,6 @@
 import re
 
-from kanjize import kanji2int, int2kanji
+import kanjize
 
 from .japaneseNumerics import japaneseNumerics, oldJapaneseNumerics
 
@@ -21,13 +21,13 @@ def splitLargeNumber(japanese: str):
     for key, value in largeNumbers.items():
         match = re.match(f'(.+){key}', kanji)
         if match is not None:
-            numbers[key] = kanji2int(match.group())
+            numbers[key] = int(kanjize.kanji2number(match.group()))
             kanji = kanji.replace(match.group(), '')
         else:
             numbers[key] = 0
 
     if len(kanji) > 0:
-        numbers['千'] = kanji2int(kanji)
+        numbers['千'] = int(kanjize.kanji2number(kanji))
     else:
         numbers['千'] = 0
 

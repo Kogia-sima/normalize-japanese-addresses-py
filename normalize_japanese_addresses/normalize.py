@@ -2,7 +2,7 @@ import re
 import json
 import unicodedata
 
-from .library.regex import getPrefectures, getPrefectureRegexes, getCityRegexes, replace_addr, normalizeTownName, match_banchi_go_pattern
+from .library.regex import getPrefectures, getPrefectureRegexes, getCachedCityRegexes, replace_addr, normalizeTownName, match_banchi_go_pattern
 from .library.patchAddr import patchAddr
 from .library.utils import zen2han
 
@@ -86,7 +86,7 @@ def normalize(address: str, **kwargs):
         for _pref, cities in prefectures.items():
 
             addr = addr.strip()
-            for _city, reg in getCityRegexes(_pref, cities):
+            for _city, reg in getCachedCityRegexes(_pref, cities):
                 match = reg.match(addr)
                 if match is not None:
                     matched.append(
@@ -125,7 +125,7 @@ def normalize(address: str, **kwargs):
     if pref != '' and level >= 2:
         cities = prefectures[pref]
 
-        for _city, reg in getCityRegexes(pref, cities):
+        for _city, reg in getCachedCityRegexes(pref, cities):
             match = reg.match(addr)
             if match is not None:
                 city = _city

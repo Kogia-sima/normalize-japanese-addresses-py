@@ -25,6 +25,7 @@ JIS_NEW_KANJI = '亜,囲,壱,栄,駅,応,桜,仮,会,懐,覚,楽,陥,歓,気,戯
 
 cache_prefecture = {}
 cache_towns = {}
+cached_city_regexes = {}
 
 match_banchi_go_pattern = [
         '[0-9０-９一二三四五六七八九〇十百千]+(番地?|-)[0-9０-９一二三四五六七八九〇十百千]+(号|-)[0-9０-９一二三四五六七八九〇十百千]+(号室?)', 
@@ -47,6 +48,15 @@ def getPrefectureRegexes(prefs: list, omit_mode: bool = False):
         _pref = re.sub(f'{pref_regex}$', '', pref)
         reg = re.compile(f'^{_pref}{pref_regex}') if not omit_mode else re.compile(f'^{_pref}{pref_regex}?')
         yield pref, reg
+
+
+def getCachedCityRegexes(pref: str, cities: list):
+    regexes = cached_city_regexes.get(pref, None)
+    if regexes is None:
+        regexes = list(getCityRegexes(pref, cities))
+        cached_city_regexes[pref] = regexes
+
+    return regexes
 
 
 def getCityRegexes(pref: str, cities: list):

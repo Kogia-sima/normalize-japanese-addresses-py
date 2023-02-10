@@ -33,7 +33,7 @@ match_banchi_go_pattern = [
         ]
 
 @cached(cache=TTLCache(maxsize=300, ttl=60 * 60 * 24 * 7))
-def getPrefectures(endpoint):
+def getPrefectures(endpoint) -> str:
     global cache_prefecture
     endpoint_url = f'{endpoint}.json'
     if endpoint_url not in cache_prefecture:
@@ -81,7 +81,7 @@ def getTowns(pref: str, city: str, endpoint: str):
 
     endpoint_url = f'{town_endpoint}.json'
     if endpoint_url not in cache_towns:
-        cache_towns[endpoint_url] = list(json.loads((apiFetch(endpoint_url)).text))
+        cache_towns[endpoint_url] = list(json.loads((apiFetch(endpoint_url))))
 
     return cache_towns[endpoint_url]
 

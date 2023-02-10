@@ -71,7 +71,7 @@ def normalize(address: str, **kwargs):
 
     # 都道府県の正規化
     response_prefs = getPrefectures(endpoint)
-    prefectures: dict = json.loads(response_prefs.text)
+    prefectures: dict = json.loads(response_prefs)
     prefs: list = list(prefectures.keys())
     for _pref, reg in getPrefectureRegexes(prefs):
         if reg.match(addr):

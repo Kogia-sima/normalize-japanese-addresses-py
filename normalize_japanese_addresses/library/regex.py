@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 import json
 import urllib.parse
@@ -5,8 +6,10 @@ import copy
 
 import kanjize
 from cachetools import cached, TTLCache
+from platformdirs import user_cache_dir
 
 from .api import apiFetch
+from .cache import Cache
 from .utils import kan2num, findKanjiNumbers
 
 JIS_OLD_KANJI = (
@@ -31,9 +34,12 @@ JIS_NEW_KANJI = (
     )
 )
 
+CACHE_DIR = Path(user_cache_dir(__package__))
 cache_prefecture = {}
 cache_towns = {}
-cached_city_regexes = {}
+cached_pref_regexes = Cache(CACHE_DIR / "pref", "0.0.5", ram_capacity=50)
+cached_city_regexes = Cache(CACHE_DIR / "city", "0.0.5", ram_capacity=50)
+cached_town_regexes = Cache(CACHE_DIR / "town", "0.0.5", ram_capacity=50)
 
 match_banchi_go_pattern = [
     '[0-9０-９一二三四五六七八九〇十百千]+(番地?|-)[0-9０-９一二三四五六七八九〇十百千]+(号|-)[0-9０-９一二三四五六七八九〇十百千]+(号室?)',
@@ -51,23 +57,28 @@ def getPrefectures(endpoint) -> str:
     return cache_prefecture[endpoint_url]
 
 
-def getPrefectureRegexes(prefs: list, omit_mode: bool = False):
+def getCachedPrefectureRegexes(prefs: list[str]) -> list[list[str]]:
+    regexes = cached_pref_regexes.get(str(len(prefs)), None)
+    if regexes is None:
+        regexes = list(getPrefectureRegexes(prefs))
+        cached_pref_regexes.insert(str(len(prefs)), regexes)
+
+    return regexes
+
+
+def getPrefectureRegexes(prefs: list):
     pref_regex = '([都道府県])'
     for pref in prefs:
         _pref = re.sub(f'{pref_regex}$', '', pref)
-        reg = (
-            re.compile(f'^{_pref}{pref_regex}')
-            if not omit_mode
-            else re.compile(f'^{_pref}{pref_regex}?')
-        )
-        yield pref, reg
+        reg = f'^{_pref}{pref_regex}'
+        yield [pref, reg]
 
 
-def getCachedCityRegexes(pref: str, cities: list):
+def getCachedCityRegexes(pref: str, cities: list) -> list[list[str]]:
     regexes = cached_city_regexes.get(pref, None)
     if regexes is None:
         regexes = list(getCityRegexes(pref, cities))
-        cached_city_regexes[pref] = regexes
+        cached_city_regexes.insert(pref, regexes)
 
     return regexes
 
@@ -79,7 +90,7 @@ def getCityRegexes(pref: str, cities: list):
         _city = toRegex(city)
         if re.match('.*?([町村])$', city) is not None:
             _city = re.sub('(.+?)郡', '(\\1郡)?', _city)
-        yield city, re.compile(f'^{_city}')
+        yield [city, f'^{_city}']
 
 
 @cached(cache=TTLCache(maxsize=300, ttl=60 * 60 * 24 * 7))
@@ -101,7 +112,16 @@ def getTowns(pref: str, city: str, endpoint: str):
     return cache_towns[endpoint_url]
 
 
-def getTownRegexes(pref: str, city: str, endpoint):
+def getCachedTownRegexes(pref: str, city: str, endpoint) -> list[list[str]]:
+    regexes = cached_town_regexes.get(pref + city, None)
+    if regexes is None:
+        regexes = list(getTownRegexes(pref, city, endpoint))
+        cached_town_regexes.insert(pref + city, regexes)
+
+    return regexes
+
+
+def getTownRegexes(pref: str, city: str, endpoint) -> list[list[str]]:
     def getChomeRegex(match_value: str):
         regexes = [re.sub('(丁目?|番([町丁])|条|軒|線|([のノ])町|地割)', '', match_value)]
 
@@ -205,14 +225,14 @@ def getTownRegexes(pref: str, city: str, endpoint):
             town_regexes.append(
                 [
                     return_town,
-                    re.compile(f'.*{_town}'),
+                    f'.*{_town}',
                     town["lat"],
                     town["lng"],
                 ]
             )
         else:
             town_regexes.append(
-                [return_town, re.compile(f'^{_town}'), town["lat"], town["lng"]]
+                [return_town, f'^{_town}', town["lat"], town["lng"]]
             )
 
     return town_regexes
@@ -327,7 +347,7 @@ def toRegex(value: str):
 def normalizeTownName(addr: str, pref: str, city: str, endpoint: str):
     addr = addr.strip()
     addr = re.sub('^大字', '', addr)
-    town_regexes = getTownRegexes(pref, city, endpoint)
+    town_regexes = getCachedTownRegexes(pref, city, endpoint)
 
     for town_regex in town_regexes:
         _town, reg, lat, lng = (

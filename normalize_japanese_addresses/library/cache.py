@@ -104,6 +104,9 @@ class Cache:
 
         path.write_bytes(contents)
 
+    def clear_ram(self) -> None:
+        self._ram_cache = OrderedDict()
+
     def __getitem__(self, key: str) -> Any:
         return self.get(key)
 

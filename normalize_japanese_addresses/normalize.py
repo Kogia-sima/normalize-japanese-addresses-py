@@ -2,7 +2,14 @@ import re
 import json
 import unicodedata
 
-from .library.regex import getPrefectures, getPrefectureRegexes, getCachedCityRegexes, replace_addr, normalizeTownName, match_banchi_go_pattern
+from .library.regex import (
+    getPrefectures,
+    getPrefectureRegexes,
+    getCachedCityRegexes,
+    replace_addr,
+    normalizeTownName,
+    match_banchi_go_pattern,
+)
 from .library.patchAddr import patchAddr
 from .library.utils import zen2han
 
@@ -48,7 +55,8 @@ def normalize(address: str, **kwargs):
     # 数字の後に紐づくハイフン類似文字をすべて半角ハイフンに変換
     hyphen_iter = re.finditer(
         '([0-9０-９一二三四五六七八九〇十百千][-－﹣−‐⁃‑‒–—﹘―⎯⏤ーｰ─━])|([-－﹣−‐⁃‑‒–—﹘―⎯⏤ーｰ─━])[0-9０-９一二三四五六七八九〇十]',
-        addr)
+        addr,
+    )
     for m in hyphen_iter:
         from_value = m.group()
         replace_value = re.sub('[-－﹣−‐⁃‑‒–—﹘―⎯⏤ーｰ─━]', HYPHEN, from_value)
@@ -76,7 +84,7 @@ def normalize(address: str, **kwargs):
     for _pref, reg in getPrefectureRegexes(prefs):
         if reg.match(addr):
             pref = _pref
-            addr = addr[len(reg.match(addr)[0]):]
+            addr = addr[len(reg.match(addr)[0]) :]
             break
 
     if pref == '':
@@ -93,7 +101,7 @@ def normalize(address: str, **kwargs):
                         {
                             'pref': _pref,
                             'city': _city,
-                            'addr': addr[len(match.group()):]
+                            'addr': addr[len(match.group()) :],
                         }
                     )
 
@@ -103,10 +111,7 @@ def normalize(address: str, **kwargs):
         else:
             for match in matched:
                 normalized = normalizeTownName(
-                    match['addr'],
-                    match['pref'],
-                    match['city'],
-                    endpoint
+                    match['addr'], match['pref'], match['city'], endpoint
                 )
 
                 if normalized is not None:
@@ -118,7 +123,7 @@ def normalize(address: str, **kwargs):
         for _pref, reg in getPrefectureRegexes(prefs, True):
             if reg.match(addr):
                 pref = _pref
-                addr = addr[len(reg.match(addr)[0]):]
+                addr = addr[len(reg.match(addr)[0]) :]
                 break
 
     # 市区町村の正規化
@@ -129,30 +134,33 @@ def normalize(address: str, **kwargs):
             match = reg.match(addr)
             if match is not None:
                 city = _city
-                addr = addr[len(match.group()):]
+                addr = addr[len(match.group()) :]
                 break
 
     # 町丁目以降の正規化
     if city != '' and level >= 3:
-        
+
         banchiGoQueue = []
         for pattern in match_banchi_go_pattern:
             match = re.match(pattern, addr)
             if match is not None:
                 banchiGoQueue.append(match[0])
                 addr = addr.replace(match[0], '')
-            
 
         normalized = normalizeTownName(addr, pref, city, endpoint)
         if normalized is not None:
             _town = normalized['town']
-            town = _town['originalTown'] if 'originalTown' in _town else _town['town']
+            town = (
+                _town['originalTown']
+                if 'originalTown' in _town
+                else _town['town']
+            )
             addr = normalized['addr']
             lat = normalized['lat']
             lng = normalized['lng']
 
         addr = ''.join(banchiGoQueue) + addr
-        
+
         addr = replace_addr(addr)
 
     addr = patchAddr(pref, city, town, addr)

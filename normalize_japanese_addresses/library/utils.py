@@ -44,7 +44,10 @@ def kan2num(value: str):
 def _kanji2integer(japanese: str):
     japanese = normalize(japanese)
 
-    if re.match('〇', japanese) is not None or re.match('^[〇一二三四五六七八九]+$', japanese) is not None:
+    if (
+        re.match('〇', japanese) is not None
+        or re.match('^[〇一二三四五六七八九]+$', japanese) is not None
+    ):
         for key, value in japaneseNumerics.items():
             japanese = japanese.replace(key, value)
 
@@ -59,7 +62,9 @@ def _kanji2integer(japanese: str):
                 number = number + n
 
         if not str(number).isdigit() or not str(numbers['千']).isdigit():
-            raise TypeError('The attribute of _kanji2integer() must be a Japanese numeral as integer.')
+            raise TypeError(
+                'The attribute of _kanji2integer() must be a Japanese numeral as integer.'
+            )
 
         return number + numbers['千']
 
@@ -70,7 +75,12 @@ def findKanjiNumbers(text: str):
             return False
 
         if re.match('^[0-9０-９]+$', item) is None and (
-                len(item) > 0 and '兆' != item and '億' != item and '万' != item and '萬' != item):
+            len(item) > 0
+            and '兆' != item
+            and '億' != item
+            and '万' != item
+            and '萬' != item
+        ):
             return True
         else:
             return False
@@ -95,7 +105,14 @@ def findKanjiNumbers(text: str):
 
 
 def zen2han(value: str):
-    return value \
-        .translate(str.maketrans({chr(0xFF10 + i): chr(0x30 + i) for i in range(10)})) \
-        .translate(str.maketrans({chr(0xFF21 + i): chr(0x41 + i) for i in range(26)})) \
-        .translate(str.maketrans({chr(0xFF41 + i): chr(0x61 + i) for i in range(26)}))
+    return (
+        value.translate(
+            str.maketrans({chr(0xFF10 + i): chr(0x30 + i) for i in range(10)})
+        )
+        .translate(
+            str.maketrans({chr(0xFF21 + i): chr(0x41 + i) for i in range(26)})
+        )
+        .translate(
+            str.maketrans({chr(0xFF41 + i): chr(0x61 + i) for i in range(26)})
+        )
+    )

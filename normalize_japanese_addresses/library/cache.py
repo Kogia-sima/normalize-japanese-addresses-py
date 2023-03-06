@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import Any, Callable, TypeVar, Generic
 
 import hashlib
-import json
+import pickle
 from pathlib import Path
 
 
@@ -114,8 +114,7 @@ class Cache:
         return self.insert(key, value)
 
     def _encode_default(self, obj: Any) -> bytes:
-        tmp = json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
-        return tmp.encode("utf-8")
+        return pickle.dumps(obj, protocol=pickle.HIGHEST_PROTOCOL)
 
     def _decode_default(self, contents: bytes):
-        return json.loads(contents.decode("utf-8"))
+        return pickle.loads(contents)

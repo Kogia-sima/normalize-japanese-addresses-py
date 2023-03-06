@@ -57,24 +57,32 @@ def getPrefectures(endpoint) -> str:
     return cache_prefecture[endpoint_url]
 
 
-def getCachedPrefectureRegexes(prefs: list[str]) -> list[list[str]]:
-    regexes = cached_pref_regexes.get(str(len(prefs)), None)
+def getCachedPrefectureRegexes(
+    prefs: list[str], omit_mode: bool = False
+) -> list[tuple[str, re.Pattern]]:
+    regexes = cached_pref_regexes.get(str(omit_mode), None)
     if regexes is None:
-        regexes = list(getPrefectureRegexes(prefs))
-        cached_pref_regexes.insert(str(len(prefs)), regexes)
+        regexes = list(getPrefectureRegexes(prefs, omit_mode))
+        cached_pref_regexes.insert(str(omit_mode), regexes)
 
     return regexes
 
 
-def getPrefectureRegexes(prefs: list):
+def getPrefectureRegexes(prefs: list, omit_mode: bool = False):
     pref_regex = '([都道府県])'
     for pref in prefs:
         _pref = re.sub(f'{pref_regex}$', '', pref)
-        reg = f'^{_pref}{pref_regex}'
-        yield [pref, reg]
+        reg = (
+            re.compile(f'^{_pref}{pref_regex}')
+            if not omit_mode
+            else re.compile(re.compile(f'^{_pref}{pref_regex}?'))
+        )
+        yield pref, reg
 
 
-def getCachedCityRegexes(pref: str, cities: list) -> list[list[str]]:
+def getCachedCityRegexes(
+    pref: str, cities: list
+) -> list[tuple[str, re.Pattern]]:
     regexes = cached_city_regexes.get(pref, None)
     if regexes is None:
         regexes = list(getCityRegexes(pref, cities))
@@ -90,7 +98,7 @@ def getCityRegexes(pref: str, cities: list):
         _city = toRegex(city)
         if re.match('.*?([町村])$', city) is not None:
             _city = re.sub('(.+?)郡', '(\\1郡)?', _city)
-        yield [city, f'^{_city}']
+        yield city, re.compile(f'^{_city}')
 
 
 @cached(cache=TTLCache(maxsize=300, ttl=60 * 60 * 24 * 7))
@@ -112,7 +120,9 @@ def getTowns(pref: str, city: str, endpoint: str):
     return cache_towns[endpoint_url]
 
 
-def getCachedTownRegexes(pref: str, city: str, endpoint) -> list[list[str]]:
+def getCachedTownRegexes(
+    pref: str, city: str, endpoint
+) -> list[tuple[str, re.Pattern, float, float]]:
     regexes = cached_town_regexes.get(pref + city, None)
     if regexes is None:
         regexes = list(getTownRegexes(pref, city, endpoint))
@@ -121,7 +131,9 @@ def getCachedTownRegexes(pref: str, city: str, endpoint) -> list[list[str]]:
     return regexes
 
 
-def getTownRegexes(pref: str, city: str, endpoint) -> list[list[str]]:
+def getTownRegexes(
+    pref: str, city: str, endpoint
+) -> list[tuple[str, re.Pattern, float, float]]:
     def getChomeRegex(match_value: str):
         regexes = [re.sub('(丁目?|番([町丁])|条|軒|線|([のノ])町|地割)', '', match_value)]
 
@@ -223,16 +235,16 @@ def getTownRegexes(pref: str, city: str, endpoint) -> list[list[str]]:
 
         if re.match('^京都市', city) is not None:
             town_regexes.append(
-                [
+                (
                     return_town,
-                    f'.*{_town}',
+                    re.compile(f'.*{_town}'),
                     town["lat"],
                     town["lng"],
-                ]
+                )
             )
         else:
             town_regexes.append(
-                [return_town, f'^{_town}', town["lat"], town["lng"]]
+                (return_town, re.compile(f'^{_town}'), town["lat"], town["lng"])
             )
 
     return town_regexes

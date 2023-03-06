@@ -29,7 +29,8 @@ setup(
     install_requires=[
         "requests>=2.28.0,<3.0.0",
         "kanjize>=1.2.0,<2.0.0",
-        "cachetools>=5.2.0,<6.0.0"
+        "cachetools>=5.2.0,<6.0.0",
+        "platformdirs>=3.0.0",
     ],
     python_requires=">=3.8",
 )

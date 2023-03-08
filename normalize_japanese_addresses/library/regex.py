@@ -2,10 +2,8 @@ from pathlib import Path
 import re
 import json
 import urllib.parse
-import copy
 
 import kanjize
-from cachetools import cached, TTLCache
 from platformdirs import user_cache_dir
 
 from .api import apiFetch
@@ -47,7 +45,6 @@ match_banchi_go_pattern = [
 ]
 
 
-@cached(cache=TTLCache(maxsize=300, ttl=60 * 60 * 24 * 7))
 def getPrefectures(endpoint) -> str:
     global cache_prefecture
     endpoint_url = f'{endpoint}.json'
@@ -101,7 +98,6 @@ def getCityRegexes(pref: str, cities: list):
         yield city, re.compile(f'^{_city}')
 
 
-@cached(cache=TTLCache(maxsize=300, ttl=60 * 60 * 24 * 7))
 def getTowns(pref: str, city: str, endpoint: str):
     global cache_towns
 

@@ -1,10 +1,9 @@
 import urllib.parse
 
-import requests
-
 
 def apiFetch(endpoint: str = '') -> str:
     if endpoint.startswith('http'):
+        import requests
         return requests.get(f'{endpoint}').content.decode("utf-8")
     elif endpoint.startswith('file'):
         filepath = urllib.parse.unquote(endpoint.replace("file://", ""))

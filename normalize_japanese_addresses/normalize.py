@@ -82,9 +82,10 @@ def normalize(address: str, **kwargs):
     prefectures: dict = json.loads(response_prefs)
     prefs: list = list(prefectures.keys())
     for _pref, reg in getCachedPrefectureRegexes(prefs):
-        if reg.match(addr):
+        match = reg.match(addr)
+        if match:
             pref = _pref
-            addr = addr[len(reg.match(addr)[0]) :]
+            addr = addr[len(match[0]) :]
             break
 
     if pref == '':
@@ -121,9 +122,10 @@ def normalize(address: str, **kwargs):
     # 都道府県が省略されている場合に都道府県を抽出（誤検知防止のため、省略
     if pref == '':
         for _pref, reg in getCachedPrefectureRegexes(prefs, True):
-            if reg.match(addr):
+            match = reg.match(addr)
+            if match:
                 pref = _pref
-                addr = addr[len(reg.match(addr)[0]) :]
+                addr = addr[len(match[0]) :]
                 break
 
     # 市区町村の正規化

@@ -32,7 +32,7 @@ JIS_NEW_KANJI = (
     )
 )
 
-CACHE_DIR = Path(user_cache_dir(__package__))
+CACHE_DIR = Path(user_cache_dir(__package__, appauthor="kogiasima"))
 cache_prefecture = {}
 cache_towns = {}
 cached_pref_regexes = Cache(CACHE_DIR / "pref", "0.0.5", ram_capacity=50)
@@ -80,10 +80,11 @@ def getPrefectureRegexes(prefs: list, omit_mode: bool = False):
 def getCachedCityRegexes(
     pref: str, cities: list
 ) -> list[tuple[str, re.Pattern]]:
-    regexes = cached_city_regexes.get(pref, None)
+    cache_key = pref + "".join(cities)
+    regexes = cached_city_regexes.get(cache_key, None)
     if regexes is None:
         regexes = list(getCityRegexes(pref, cities))
-        cached_city_regexes.insert(pref, regexes)
+        cached_city_regexes.insert(cache_key, regexes)
 
     return regexes
 
@@ -355,7 +356,9 @@ def toRegex(value: str):
 def normalizeTownName(addr: str, pref: str, city: str, endpoint: str):
     addr = addr.strip()
     addr = re.sub('^大字', '', addr)
-    town_regexes = getCachedTownRegexes(pref, city, endpoint)
+
+    # Use non-cached version to avoid cache invalidation
+    town_regexes = getTownRegexes(pref, city, endpoint)
 
     for town_regex in town_regexes:
         _town, reg, lat, lng = (

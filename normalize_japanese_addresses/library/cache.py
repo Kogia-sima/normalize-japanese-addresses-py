@@ -60,8 +60,8 @@ class Cache:
         return value
 
     def get_from_disk(self, key: str) -> Any | None:
-        encoded = key.encode("utf-8")
-        filename = hashlib.md5(encoded).hexdigest()
+        encoded_key = key.encode("utf-8")
+        filename = hashlib.md5(encoded_key).hexdigest()
         path = self._directory / filename
         if not path.is_file():
             return None
@@ -72,7 +72,7 @@ class Cache:
                 return None
 
             key_len = int.from_bytes(fp.read(8), "little")
-            if fp.read(key_len) != encoded:
+            if fp.read(key_len) != encoded_key:
                 return None
 
             value_len = int.from_bytes(fp.read(8), "little")

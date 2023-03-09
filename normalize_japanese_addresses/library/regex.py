@@ -80,11 +80,12 @@ def getPrefectureRegexes(prefs: list, omit_mode: bool = False):
 def getCachedCityRegexes(
     pref: str, cities: list
 ) -> list[tuple[str, re.Pattern]]:
-    cache_key = pref + "".join(cities)
-    regexes = cached_city_regexes.get(cache_key, None)
+    # invalidate cache if `cities` list is updated
+    checksum = "".join(cities).encode("utf-8")
+    regexes = cached_city_regexes.get(pref, None, checksum=checksum)
     if regexes is None:
         regexes = list(getCityRegexes(pref, cities))
-        cached_city_regexes.insert(cache_key, regexes)
+        cached_city_regexes.insert(pref, regexes, checksum=checksum)
 
     return regexes
 

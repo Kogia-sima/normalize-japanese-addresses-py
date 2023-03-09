@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Callable, TypeVar, Generic
+from typing import Any, Callable
 
 import hashlib
 import pickle
@@ -36,12 +36,17 @@ class Cache:
 
         self._directory.mkdir(parents=True, exist_ok=True)
 
-    def get(self, key: str, default: Any | _NONE_TYPE = _NONE_TYPE()) -> Any:
+    def get(
+        self,
+        key: str,
+        default: Any | _NONE_TYPE = _NONE_TYPE(),
+        checksum: bytes | None = None,
+    ) -> Any:
         value = self.get_from_ram(key)
         if value is not None:
             return value
 
-        value = self.get_from_disk(key)
+        value = self.get_from_disk(key, checksum)
         if value is not None:
             # promote to ram cache
             self.insert_to_ram(key, value)
@@ -59,8 +64,11 @@ class Cache:
 
         return value
 
-    def get_from_disk(self, key: str) -> Any | None:
+    def get_from_disk(self, key: str, checksum: bytes | None = None) -> Any | None:
         encoded_key = key.encode("utf-8")
+        if checksum is None:
+            checksum = encoded_key
+
         filename = hashlib.md5(encoded_key).hexdigest()
         path = self._directory / filename
         if not path.is_file():
@@ -71,17 +79,17 @@ class Cache:
             if fp.read(version_len) != self._version:
                 return None
 
-            key_len = int.from_bytes(fp.read(8), "little")
-            if fp.read(key_len) != encoded_key:
+            checksum_len = int.from_bytes(fp.read(8), "little")
+            if fp.read(checksum_len) != checksum:
                 return None
 
             value_len = int.from_bytes(fp.read(8), "little")
             value = self._decode(fp.read(value_len))
             return value
 
-    def insert(self, key: str, value: Any) -> None:
+    def insert(self, key: str, value: Any, checksum: bytes | None = None) -> None:
         self.insert_to_ram(key, value)
-        self.insert_to_disk(key, value)
+        self.insert_to_disk(key, value, checksum)
 
     def insert_to_ram(self, key: str, value: Any) -> None:
         if (
@@ -92,14 +100,19 @@ class Cache:
 
         self._ram_cache[key] = value
 
-    def insert_to_disk(self, key: str, value: Any) -> None:
+    def insert_to_disk(
+        self, key: str, value: Any, checksum: bytes | None = None
+    ) -> None:
         encoded_key = key.encode("utf-8")
+        if checksum is None:
+            checksum = encoded_key
+
         filename = hashlib.md5(encoded_key).hexdigest()
         path = self._directory / filename
         encoded_val = self._encode(value)
 
         contents = len(self._version).to_bytes(8, "little") + self._version
-        contents += len(encoded_key).to_bytes(8, "little") + encoded_key
+        contents += len(checksum).to_bytes(8, "little") + checksum
         contents += len(encoded_val).to_bytes(8, "little") + encoded_val
 
         path.write_bytes(contents)
